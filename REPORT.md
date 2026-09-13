@@ -54,11 +54,40 @@ We evaluated our AI Agent pipeline against two distinct baselines across the 200
 
 ## 3. Failure Analysis (Top 5 Failure Modes)
 
-1. **Multilingual & Non-English Tweet Confusion**: Non-English tweets (Japanese, French, Spanish) were occasionally misassigned to `damaged_or_wrong_item` or `other` due to English-centric dataset terms.
-2. **Multi-Intent Overlap**: Messages containing combined grievances (e.g. missing package + refund block + threat to cancel membership) forced single-label classifiers to select one bucket, occasionally masking urgent delivery issues.
-3. **Sarcasm & Passive Aggression**: Rhetorical questions (e.g., *"A+ packaging lmao"* or *"#notreallyprimeisit?"*) were misclassified as positive inquiry rather than complaints.
-4. **Vague Short Follow-Ups**: One-line follow-up tweets referencing prior offline conversations ("*Filled the web form*") lacked self-contained context.
-5. **Public Twitter Privacy Limits**: Customers posting sensitive order IDs or phone numbers required strict DM redirection, creating friction for users expecting instant public resolution.
+### Failure 1: Multilingual & Non-English Tweet Confusion
+> *"なにこれ(°д°) 開いたらあかんやつよね？ am͜a͉zonさん？ AMAZONさん？ 頼んでないもん でもこれは 騙されちゃうよー .…"* (Japanese phishing alert)
+
+- **Expected**: `account_access` (phishing/scam alert needing security guidance)
+- **Predicted**: `damaged_or_wrong_item`
+- **Hypothesis**: English-centric embedding models and keyword rules fail to capture non-English semantic nuance. The model falls back to surface-level pattern matching, misattributing unfamiliar tokens to the nearest generic category.
+
+### Failure 2: Multi-Intent Overlap & Severe Escalation Misclassification
+> *"only 9 out of 21 ordered items were delivered today. No way to request a refund. This is not the first time when such thing happened, but this time it is really awful. We are upset and most likely will cancel our membership."*
+
+- **Expected**: `delivery_issue` + **ESCALATE: yes** (partial delivery + membership cancellation threat)
+- **Predicted**: `refund_return` + ESCALATE: no
+- **Hypothesis**: Single-label classifiers latch onto the most keyword-dense intent (`refund`) rather than the root operational cause (`delivery_issue`). The membership cancellation threat—the highest urgency signal—is completely ignored.
+
+### Failure 3: Sarcasm & Passive Aggression
+> *"A+ on packaging lmao."* / *"Pondering how prime delivery can take longer than Royal Mail second class. #notreallyprimeisit?"*
+
+- **Expected**: `general_complaint` / `damaged_or_wrong_item`
+- **Predicted**: `product_inquiry`
+- **Hypothesis**: Sarcastic praise ("A+ packaging") and ironic hashtags trick sentiment and keyword tools into reading positive feedback. Without deep contextual reasoning, `lmao` and `#notreallyprimeisit` are not recognized as dissatisfaction markers.
+
+### Failure 4: Vague Short Follow-Ups Without Dialogue State
+> *"Getting a practical solution would have been better for me."* / *"Shared details on web form. Pl action"*
+
+- **Expected**: `general_complaint` or `other`
+- **Predicted**: `delivery_issue` (defaulted to majority class)
+- **Hypothesis**: Single-turn processing cannot infer intent from messages that reference prior off-platform interactions. Without cross-turn conversation history, the agent has no signal and collapses to the dominant class.
+
+### Failure 5: Public Privacy Over-sharing vs. Execution Limits
+> *"I placd an order iPhone se 32 Gb variant with net banking and my acc blocked for security reason! My Order ID 404-6662997-2205169"*
+
+- **Expected**: **ESCALATE: yes** (security lockout requiring private identity verification)
+- **Observed reply**: *"Please do not post order details publicly…"* (correct in tone, but unresolvable by bot)
+- **Hypothesis**: Public Twitter channels prevent automated API execution of account modifications for privacy compliance. The agent correctly redirects to DM but cannot close the loop—customers expecting instant automated resolution experience friction and distrust.
 
 ---
 
