@@ -12,6 +12,10 @@ data/.llm_cache.json
 # Large raw datasets
 *.zip
 customer-support-on-twitter.zip
+data/twcs/
+data/twcs/twcs.csv
+data/raw_amazonhelp.csv
+
 
 # IDE & OS specific
 .vscode/
