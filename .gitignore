@@ -1,0 +1,20 @@
+# Environment & Secrets
+.env
+*.env
+
+# Cache & Python build artifacts
+__pycache__/
+*.py[cod]
+*$py.class
+.llm_cache.json
+data/.llm_cache.json
+
+# Large raw datasets
+*.zip
+customer-support-on-twitter.zip
+
+# IDE & OS specific
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
